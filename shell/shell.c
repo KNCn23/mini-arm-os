@@ -12,10 +12,6 @@ static int streq(const char *a, const char *b) {
     return *a == *b;
 }
 
-static size_t slen(const char *s) {
-    size_t n = 0; while (s[n]) n++; return n;
-}
-
 /* ── line editor: handles backspace and ASCII echo ────────────────────── */
 static void read_line(char *buf, int maxlen) {
     int i = 0;
