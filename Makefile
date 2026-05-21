@@ -1,7 +1,15 @@
-# Cross-compiler. Override with `make CROSS=...` if needed.
-CROSS   ?= aarch64-elf-
-# Linux distros typically ship the GNU toolchain as aarch64-linux-gnu-
-# CROSS ?= aarch64-linux-gnu-
+# Auto-detect cross-compiler if CROSS isn't explicitly set.
+ifeq ($(origin CROSS),undefined)
+  ifneq ($(shell command -v aarch64-elf-gcc 2>/dev/null),)
+    CROSS := aarch64-elf-
+  else ifneq ($(shell command -v aarch64-unknown-linux-gnu-gcc 2>/dev/null),)
+    CROSS := aarch64-unknown-linux-gnu-
+  else ifneq ($(shell command -v aarch64-linux-gnu-gcc 2>/dev/null),)
+    CROSS := aarch64-linux-gnu-
+  else
+    $(error No AArch64 cross-compiler found. Install one of: aarch64-elf-gcc, aarch64-unknown-linux-gnu-gcc, aarch64-linux-gnu-gcc)
+  endif
+endif
 
 CC      = $(CROSS)gcc
 LD      = $(CROSS)ld
@@ -22,9 +30,12 @@ OBJS    = $(SRC_S:.S=.o) $(SRC_C:.c=.o)
 TARGET  = kernel.elf
 IMG     = kernel.img
 
-.PHONY: all clean run debug
+.PHONY: all clean run debug info
 
 all: $(IMG)
+
+info:
+	@echo "Using cross-compiler prefix: $(CROSS)"
 
 $(TARGET): $(OBJS) linker.ld
 	$(LD) -T linker.ld -o $@ $(OBJS)
@@ -39,6 +50,9 @@ $(IMG): $(TARGET)
 	$(CC) $(ASFLAGS) -c $< -o $@
 
 run: $(TARGET)
+	@echo ""
+	@echo "Booting mini-arm-os in QEMU. Exit with:  Ctrl-A  then  x"
+	@echo ""
 	qemu-system-aarch64 -M virt -cpu cortex-a72 -m 256M \
 	  -nographic -kernel $(TARGET)
 
